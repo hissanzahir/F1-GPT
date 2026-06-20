@@ -5,6 +5,7 @@ import OpenAi from "openai" //understands text
 import {RecursiveCharacterTextSplitter} from "langchain/text_splitter" //breaks data
 
 import "dotenv/config" //loads secretsapi
+import { browser } from "process"
 
 type Similaritymetric=
  "dot_product" |
@@ -93,4 +94,47 @@ const createCollection= async (Similaritymetric:Similaritymetric="dot_product") 
     })
     console.log(res)
 }
+
+//get all urls chunk them up and create vector embeding 
+const loadSampleData= async() => {
+    const collection = await db.collection(ASTRA_DB_COLLECTION)
+    for await (const url of f1Data ) {
+        const content = await scrapePage(url)
+        const chunks = await splitter.splitText(content)
+        for await (const chunk of chunks) {
+            const embedding = await openai.embeddings.create({
+                model:"text-embedding-3-small",
+                input:chunk,
+                encoding_format:"float"
+            })
+            //saving response from open ai
+            const vector = embedding.data[0].embedding
+            const res = await collection.insertOne({
+                $vector:vector,
+                text:chunk
+            })
+            console.log(res)
+        }
+    }
+}
+
+
+const scrapePage = async (url: string) => {
+    const loader= new PuppeteerWebBaseLoader( url, {
+        launchOptions: {
+            headless: true,
+            args: ["--no-sandbox", "--disable-setuid-sandbox"]
+        },
+        gotoOptions: {
+            waitUntil : "domcontentloaded"
+        },
+        evaluate: async (page, browser) => {
+           const result = await page.evaluate(() => document.body.innerHTML) 
+           await browser.close()
+              return result
+        }
+    })
+    return (await loader.scrape())?.replace(/<[^>]*>?/gm,'')
+}
+
  
