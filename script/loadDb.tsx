@@ -3,9 +3,10 @@ import { PuppeteerWebBaseLoader } from "langchain/document_loaders/web/puppeteer
 import OpenAi from "openai" //understands text
 
 import {RecursiveCharacterTextSplitter} from "langchain/text_splitter" //breaks data
+import { readFile, writeFile } from "fs/promises"
+import path from "path"
 
 import "dotenv/config" //loads secretsapi
-import { browser } from "process"
 
 type Similaritymetric=
  "dot_product" |
@@ -85,6 +86,35 @@ const splitter= new RecursiveCharacterTextSplitter({
     chunkOverlap:100
 })
 
+const checkpointPath = path.join(process.cwd(), ".seed-checkpoint.json")
+
+type SeedCheckpoint = {
+    urlIndex: number
+    chunkIndex: number
+}
+
+const defaultCheckpoint: SeedCheckpoint = {
+    urlIndex: 0,
+    chunkIndex: 0
+}
+
+const loadCheckpoint = async (): Promise<SeedCheckpoint> => {
+    try {
+        const raw = await readFile(checkpointPath, "utf-8")
+        const parsed = JSON.parse(raw) as Partial<SeedCheckpoint>
+        return {
+            urlIndex: parsed.urlIndex ?? 0,
+            chunkIndex: parsed.chunkIndex ?? 0
+        }
+    } catch {
+        return defaultCheckpoint
+    }
+}
+
+const saveCheckpoint = async (checkpoint: SeedCheckpoint) => {
+    await writeFile(checkpointPath, JSON.stringify(checkpoint, null, 2))
+}
+
 const createCollection= async (Similaritymetric:Similaritymetric="dot_product") => {
     const res = await db.createCollection( ASTRA_DB_COLLECTION,{
         vector:{
@@ -98,10 +128,22 @@ const createCollection= async (Similaritymetric:Similaritymetric="dot_product") 
 //get all urls chunk them up and create vector embeding 
 const loadSampleData= async() => {
     const collection = await db.collection(ASTRA_DB_COLLECTION)
-    for await (const url of f1Data ) {
+    const checkpoint = await loadCheckpoint()
+    const firstDoc = await collection.findOne({})
+
+    if (!firstDoc && (checkpoint.urlIndex !== 0 || checkpoint.chunkIndex !== 0)) {
+        await saveCheckpoint(defaultCheckpoint)
+    }
+
+    for (let urlIndex = checkpoint.urlIndex; urlIndex < f1Data.length; urlIndex++) {
+        const url = f1Data[urlIndex]
         const content = await scrapePage(url)
         const chunks = await splitter.splitText(content)
-        for await (const chunk of chunks) {
+
+        const startChunkIndex = urlIndex === checkpoint.urlIndex ? checkpoint.chunkIndex : 0
+
+        for (let chunkIndex = startChunkIndex; chunkIndex < chunks.length; chunkIndex++) {
+            const chunk = chunks[chunkIndex]
             const embedding = await openai.embeddings.create({
                 model:"text-embedding-3-small",
                 input:chunk,
@@ -109,12 +151,29 @@ const loadSampleData= async() => {
             })
             //saving response from open ai
             const vector = embedding.data[0].embedding
+
+            const existing = await collection.findOne({
+                sourceUrl: url,
+                chunkIndex
+            })
+
+            if (existing) {
+                console.log({ skipped: true, urlIndex, chunkIndex })
+                await saveCheckpoint({ urlIndex, chunkIndex: chunkIndex + 1 })
+                continue
+            }
+
             const res = await collection.insertOne({
                 $vector:vector,
-                text:chunk
+                text:chunk,
+                sourceUrl: url,
+                chunkIndex
             })
             console.log(res)
+            await saveCheckpoint({ urlIndex, chunkIndex: chunkIndex + 1 })
         }
+
+        await saveCheckpoint({ urlIndex: urlIndex + 1, chunkIndex: 0 })
     }
 }
 
@@ -129,12 +188,17 @@ const scrapePage = async (url: string) => {
             waitUntil : "domcontentloaded"
         },
         evaluate: async (page, browser) => {
-           const result = await page.evaluate(() => document.body.innerHTML) 
+           const result = await page.evaluate(() => {
+               document.querySelectorAll("script, style, noscript").forEach((el) => el.remove())
+               return document.body.innerText
+           }) 
            await browser.close()
               return result
         }
     })
-    return (await loader.scrape())?.replace(/<[^>]*>?/gm,'')
+    return (await loader.scrape())?.trim()
 }
 
+
+createCollection().then(()=> loadSampleData())
  
