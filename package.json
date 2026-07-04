@@ -10,7 +10,9 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^4.0.7",
     "@datastax/astra-db-ts": "^1.1.1",
+    "ai": "^4.0.0",
     "dotenv": "^16.4.5",
     "langchain": "^0.1.36",
     "next": "14.2.23",
