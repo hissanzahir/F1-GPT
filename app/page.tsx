@@ -12,7 +12,7 @@ const Home = () => {
 
     return (
         <main>
-            <Image src={F1GPTlogo} width="250"  alt= "F1GPT Logo"/>
+            <Image className="logo" src={F1GPTlogo} width="250"  alt= "F1GPT Logo"/>
             <section className={noMessages ? "" : "populated"}>
                 {noMessages ? (
                     <>
@@ -31,13 +31,11 @@ const Home = () => {
                         {/*<LoadingBubble/>*/}
                     </>
                 )}
-
-                <form onSubmit={handleSubmit}>
+            </section>
+            <form onSubmit={handleSubmit}>
                     <input className="question-box" onChange={handleInputChange} value={input} placeholder="Ask me Anything"  />
                     <input type="submit"/>
                 </form>
-
-            </section>
         </main>
     )
 }

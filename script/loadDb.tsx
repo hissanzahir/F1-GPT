@@ -200,5 +200,7 @@ const scrapePage = async (url: string) => {
 }
 
 
-createCollection().then(()=> loadSampleData())
+loadSampleData()
  
+
+
