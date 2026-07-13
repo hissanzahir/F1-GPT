@@ -1,13 +1,16 @@
 "use client";
 import Image from "next/image";
-import F1GPTlogo from "./assets/F1GPTLogo.png";
+import F1GPTlogo from "./assets/F1GPTLogo.png"
 import { useChat } from "ai/react"
 import { Message } from "ai"
+import Bubble from "./components/bubble"
+import LoadingBubble from "./components/LoadingBubble"
+import PromptSuggestionRow from "./components/promptSuggestionsRow"
 
 const Home = () => {
     const {append, isLoading, messages,input, handleInputChange, handleSubmit} = useChat()
 
-    const noMessages= true
+    const noMessages= false
 
 
     return (
@@ -23,12 +26,12 @@ const Home = () => {
                             We hope you enjoy!
                         </p>
                         <br/>
-                        {/*<PromptSuggestionRow/>*/}
+                        <PromptSuggestionRow/>
                     </>
                 ) : (
                     <>
-                        {/*map messages onto text bubbles */}
-                        {/*<LoadingBubble/>*/}
+                        {messages.map((messages,index) => <Bubble key={`messages-${index}`} message={message}/>)}
+                        {isLoading && <LoadingBubble/>}
                     </>
                 )}
             </section>
