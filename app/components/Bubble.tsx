@@ -1,11 +1,11 @@
-const Bubble = ({message}) => {
+const Bubble = ({ message }) => {
+    const { role, content } = message;
 
-    const {role, content} = message
+    return (
+        <div className={`bubble ${role}`}>
+            {content}
+        </div>
+    );
+};
 
-    return(
-        <div> className={`${role}bubble`}>{content}</div>
-    )
-
-}
-
-export default Bubble 
+export default Bubble;
