@@ -3,14 +3,23 @@ import Image from "next/image";
 import F1GPTlogo from "./assets/F1GPTLogo.png"
 import { useChat } from "ai/react"
 import { Message } from "ai"
-import Bubble from "./components/bubble"
+import Bubble from "./components/Bubble"
 import LoadingBubble from "./components/LoadingBubble"
-import PromptSuggestionRow from "./components/promptSuggestionsRow"
+import PromptSuggestionRow from "./components/PromptSuggestionsRow"
 
 const Home = () => {
     const {append, isLoading, messages,input, handleInputChange, handleSubmit} = useChat()
 
-    const noMessages= false
+    const noMessages= !messages || messages.length === 0
+
+    const handlePrompt = (promptText) => {
+        const msg : Message ={
+            id: crypto.randomUUID(),
+            content: promptText,
+            role: "user"
+        }
+        append(msg)
+    }
 
 
     return (
@@ -26,11 +35,13 @@ const Home = () => {
                             We hope you enjoy!
                         </p>
                         <br/>
-                        <PromptSuggestionRow/>
+                        <PromptSuggestionRow onPromptClick={handlePrompt} />
                     </>
                 ) : (
                     <>
-                        {messages.map((messages,index) => <Bubble key={`messages-${index}`} message={message}/>)}
+                        {messages.map((message, index) => (
+                            <Bubble key={`message-${index}`} message={message} />
+                        ))}
                         {isLoading && <LoadingBubble/>}
                     </>
                 )}
