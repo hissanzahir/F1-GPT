@@ -1,5 +1,6 @@
 import OpenAI from "openai";
-import {OpenAIStream, StreamingTextResponse} from "ai"
+import { streamText } from "ai";
+import { openai as aiOpenai } from "@ai-sdk/openai";
 import { DataAPIClient } from "@datastax/astra-db-ts"
 import { cursorTo } from "readline";
 
@@ -74,14 +75,12 @@ export async function POST(req:Request) {
             `
         }
 
-        const response = await openai.chat.completions.create({
-            model: "gpt-4",
-            stream: true,
-            messages: [template,...messages]
-        })
+       const result = streamText({
+    model: aiOpenai("gpt-4"),
+    messages: [template, ...messages],
+});
 
-        const stream =OpenAIStream(response)
-        return new StreamingTextResponse(stream)
+    return result.toDataStreamResponse();
     } catch (err) {
         throw err
     }
