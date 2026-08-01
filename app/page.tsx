@@ -1,57 +1,96 @@
 "use client";
 import Image from "next/image";
-import F1GPTlogo from "./assets/F1GPTLogo.png"
-import { useChat } from "ai/react"
-import { Message } from "ai"
-import Bubble from "./components/Bubble"
-import LoadingBubble from "./components/LoadingBubble"
-import PromptSuggestionRow from "./components/PromptSuggestionsRow"
+import F1GPTlogo from "./assets/F1GPTLogo.png";
+import { useChat } from "ai/react";
+import { Message } from "ai";
+import Bubble from "./components/Bubble";
+import LoadingBubble from "./components/LoadingBubble";
+import PromptSuggestionRow from "./components/PromptSuggestionsRow";
 
 const Home = () => {
-    const {append, isLoading, messages,input, handleInputChange, handleSubmit} = useChat()
+    const { append, isLoading, messages, input, handleInputChange, handleSubmit, setMessages } = useChat();
 
-    const noMessages= !messages || messages.length === 0
+    const noMessages = !messages || messages.length === 0;
 
-    const handlePrompt = (promptText) => {
-        const msg : Message ={
+    const handlePrompt = (promptText: string) => {
+        const msg: Message = {
             id: crypto.randomUUID(),
             content: promptText,
-            role: "user"
-        }
-        append(msg)
-    }
+            role: "user",
+        };
+        append(msg);
+    };
 
+    const handleNewChat = () => {
+        setMessages([]);
+    };
 
     return (
-        <main>
-            <Image className="logo" src={F1GPTlogo} width="250"  alt= "F1GPT Logo"/>
-            <section className={noMessages ? "" : "populated"}>
-                {noMessages ? (
-                    <>
-                        <p className="starter text">
-                            The Ultimate place for Formula One super fans!
-                            Ask F1GPT anything about the fantastic topic of F1 racing
-                            and it will come back with the most up-to-date answers.
-                            We hope you enjoy!
-                        </p>
-                        <br/>
-                        <PromptSuggestionRow onPromptClick={handlePrompt} />
-                    </>
-                ) : (
-                    <>
-                        {messages.map((message, index) => (
-                            <Bubble key={`message-${index}`} message={message} />
-                        ))}
-                        {isLoading && <LoadingBubble/>}
-                    </>
-                )}
-            </section>
-            <form onSubmit={handleSubmit}>
-                    <input className="question-box" onChange={handleInputChange} value={input} placeholder="Ask me Anything"  />
-                    <input type="submit"/>
-                </form>
-        </main>
-    )
-}
+        <div className="app-shell">
+            <aside className="sidebar">
+                <div className="sidebar-brand">
+                    <Image className="logo" src={F1GPTlogo} width={140} alt="F1GPT Logo" />
+                    <p className="sidebar-caption">Your Formula 1 co-pilot</p>
+                </div>
 
-export default Home
+                <button className="sidebar-primary" onClick={handleNewChat} type="button">
+                    + New chat
+                </button>
+
+                <div className="sidebar-section">
+                    <p className="section-label">Quick access</p>
+                    <button className="sidebar-link" type="button">Recent chats</button>
+                    <button className="sidebar-link" type="button">Saved insights</button>
+                </div>
+
+                <div className="sidebar-footer">
+                    <button className="sidebar-auth" type="button">Login</button>
+                    <button className="sidebar-auth primary" type="button">Sign up</button>
+                </div>
+            </aside>
+
+            <main className="chat-panel">
+                <header className="chat-header">
+                    <div>
+                        <p className="eyebrow">AI assistant</p>
+                        <h1>F1GPT</h1>
+                    </div>
+                </header>
+
+                <section className={`messages-area ${noMessages ? "empty" : "populated"}`}>
+                    {noMessages ? (
+                        <div className="welcome-card">
+                            <p className="welcome-title">Ask anything about Formula One.</p>
+                            <p className="welcome-text">
+                                From race strategy and driver form to history, predictions, and team news,
+                                F1GPT delivers sharp, current answers in a clean and conversational experience.
+                            </p>
+                            <PromptSuggestionRow onPromptClick={handlePrompt} />
+                        </div>
+                    ) : (
+                        <>
+                            {messages.map((message, index) => (
+                                <Bubble key={`message-${index}`} message={message} />
+                            ))}
+                            {isLoading && <LoadingBubble />}
+                        </>
+                    )}
+                </section>
+
+                <form className="composer" onSubmit={handleSubmit}>
+                    <input
+                        className="question-box"
+                        onChange={handleInputChange}
+                        value={input}
+                        placeholder="Ask F1GPT anything..."
+                    />
+                    <button className="send-button" type="submit">
+                        Send
+                    </button>
+                </form>
+            </main>
+        </div>
+    );
+};
+
+export default Home;
