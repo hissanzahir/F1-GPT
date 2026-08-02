@@ -50,12 +50,6 @@ const Home = () => {
             </aside>
 
             <main className="chat-panel">
-                <header className="chat-header">
-                    <div>
-                        <p className="eyebrow">AI assistant</p>
-                        <h1>F1GPT</h1>
-                    </div>
-                </header>
 
                 <section className={`messages-area ${noMessages ? "empty" : "populated"}`}>
                     {noMessages ? (
