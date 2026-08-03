@@ -1,11 +1,33 @@
 "use client";
+import { useState, useTransition, type FormEvent } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import F1GPTlogo from "../assets/F1GPTLogo.png";
+import { signInWithEmail } from "../auth/actions";
+import { createClient } from "@/lib/supabase/client";
 
 const Login = () => {
-    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    const [pending, startTransition] = useTransition();
+    const [error, setError] = useState<string | null>(null);
+    const supabase = createClient();
+
+    const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        setError(null);
+        const formData = new FormData(e.currentTarget);
+        startTransition(async () => {
+            const result = await signInWithEmail(formData);
+            if (result?.error) setError(result.error);
+        });
+    };
+
+    const handleGoogle = async () => {
+        setError(null);
+        const { error } = await supabase.auth.signInWithOAuth({
+            provider: "google",
+            options: { redirectTo: `${window.location.origin}/auth/callback` },
+        });
+        if (error) setError(error.message);
     };
 
     return (
@@ -18,7 +40,7 @@ const Login = () => {
                 <h1 className="auth-title">Welcome back</h1>
                 <p className="auth-caption">Log in to pick up where you left off.</p>
 
-                <button className="auth-google" type="button">
+                <button className="auth-google" type="button" onClick={handleGoogle}>
                     <svg className="google-icon" viewBox="0 0 48 48" aria-hidden="true">
                         <path
                             fill="#EA4335"
@@ -44,22 +66,26 @@ const Login = () => {
                     <span>or</span>
                 </div>
 
+                {error && <p className="auth-error">{error}</p>}
+
                 <form className="auth-form" onSubmit={handleSubmit}>
                     <label className="auth-field">
                         <span>Email</span>
-                        <input type="email" placeholder="you@example.com" />
+                        <input type="email" name="email" placeholder="you@example.com" required />
                     </label>
 
                     <label className="auth-field">
                         <span>Password</span>
-                        <input type="password" placeholder="Enter your password" />
+                        <input type="password" name="password" placeholder="Enter your password" required />
                     </label>
 
                     <div className="auth-row">
                         <a className="auth-link" href="#">Forgot password?</a>
                     </div>
 
-                    <button className="auth-submit" type="submit">Log in</button>
+                    <button className="auth-submit" type="submit" disabled={pending}>
+                        {pending ? "Logging in..." : "Log in"}
+                    </button>
                 </form>
 
                 <p className="auth-switch">

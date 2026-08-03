@@ -1,11 +1,36 @@
 "use client";
+import { useState, useTransition, type FormEvent } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import F1GPTlogo from "../assets/F1GPTLogo.png";
+import { signUpWithEmail } from "../auth/actions";
+import { createClient } from "@/lib/supabase/client";
 
 const Signup = () => {
-    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    const [pending, startTransition] = useTransition();
+    const [error, setError] = useState<string | null>(null);
+    const [message, setMessage] = useState<string | null>(null);
+    const supabase = createClient();
+
+    const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        setError(null);
+        setMessage(null);
+        const formData = new FormData(e.currentTarget);
+        startTransition(async () => {
+            const result = await signUpWithEmail(formData);
+            if (result?.error) setError(result.error);
+            if (result?.message) setMessage(result.message);
+        });
+    };
+
+    const handleGoogle = async () => {
+        setError(null);
+        const { error } = await supabase.auth.signInWithOAuth({
+            provider: "google",
+            options: { redirectTo: `${window.location.origin}/auth/callback` },
+        });
+        if (error) setError(error.message);
     };
 
     return (
@@ -18,7 +43,7 @@ const Signup = () => {
                 <h1 className="auth-title">Create your account</h1>
                 <p className="auth-caption">Join F1GPT and get your Formula 1 co-pilot.</p>
 
-                <button className="auth-google" type="button">
+                <button className="auth-google" type="button" onClick={handleGoogle}>
                     <svg className="google-icon" viewBox="0 0 48 48" aria-hidden="true">
                         <path
                             fill="#EA4335"
@@ -44,23 +69,28 @@ const Signup = () => {
                     <span>or</span>
                 </div>
 
+                {error && <p className="auth-error">{error}</p>}
+                {message && <p className="auth-message">{message}</p>}
+
                 <form className="auth-form" onSubmit={handleSubmit}>
                     <label className="auth-field">
                         <span>Name</span>
-                        <input type="text" placeholder="Your name" />
+                        <input type="text" name="name" placeholder="Your name" required />
                     </label>
 
                     <label className="auth-field">
                         <span>Email</span>
-                        <input type="email" placeholder="you@example.com" />
+                        <input type="email" name="email" placeholder="you@example.com" required />
                     </label>
 
                     <label className="auth-field">
                         <span>Password</span>
-                        <input type="password" placeholder="Create a password" />
+                        <input type="password" name="password" placeholder="Create a password" required />
                     </label>
 
-                    <button className="auth-submit" type="submit">Sign up</button>
+                    <button className="auth-submit" type="submit" disabled={pending}>
+                        {pending ? "Signing up..." : "Sign up"}
+                    </button>
                 </form>
 
                 <p className="auth-switch">
