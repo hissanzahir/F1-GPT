@@ -12,6 +12,8 @@ const {
     OPENAI_API_KEY
 } =process.env
 
+const SIMILARITY_THRESHOLD = 0.7
+
 const openai = new OpenAI({
     apiKey: OPENAI_API_KEY
 })
@@ -39,14 +41,17 @@ export async function POST(req:Request) {
                 sort:{
                     $vector : embedding.data[0].embedding,
                 },
-                limit: 10
+                limit: 6,
+                includeSimilarity: true
             })
 
             const documents = await cursor.toArray()
 
-            const docsMap = documents.map((doc) => doc.text)
+            const docsMap = documents
+                .filter((doc) => (doc.$similarity ?? 0) >= SIMILARITY_THRESHOLD)
+                .map((doc) => `[${doc.title ?? doc.sourceUrl ?? "Source"}]: ${doc.text}`)
 
-            docContext = JSON.stringify(docsMap)
+            docContext = docsMap.join("\n\n")
 
 
         } catch (err) {
@@ -57,9 +62,10 @@ export async function POST(req:Request) {
         const template ={
             role: "system",
             content: `content: You are an AI assistant who knows everything about Formula One.
-            Use the below context to augment what you know about Formula One racing. 
-            The context will provide you with the most recent page data from wikipedia 
+            The context below contains recent page data from wikipedia 
             the official F1 website and others.
+            Base your answer primarily on the context whenever it contains 
+            relevant information.
             If the context doesn't include the information you need answer based on you 
             existing knowledge and don't mention the source of your information or 
             what the context does or doesn't include.
@@ -76,7 +82,8 @@ export async function POST(req:Request) {
         }
 
        const result = streamText({
-    model: aiOpenai("gpt-4"),
+    model: aiOpenai("gpt-5.6-luna"),
+    temperature: 1,
     messages: [template, ...messages],
 });
 
