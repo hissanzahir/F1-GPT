@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import F1GPTlogo from "./assets/F1GPTLogo.png";
 import { useChat } from "ai/react";
 import { Message } from "ai";
@@ -52,7 +53,9 @@ const Home = () => {
         <div className="app-shell">
             <aside className="sidebar">
                 <div className="sidebar-brand">
-                    <Image className="logo" src={F1GPTlogo} width={140} alt="F1GPT Logo" />
+                    <Link href="/">
+                        <Image className="logo" src={F1GPTlogo} width={140} alt="F1GPT Logo" />
+                    </Link>
                     <p className="sidebar-caption">Your Formula 1 co-pilot</p>
                 </div>
 

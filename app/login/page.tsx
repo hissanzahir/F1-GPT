@@ -34,7 +34,9 @@ const Login = () => {
         <div className="auth-shell">
             <div className="auth-card">
                 <div className="auth-brand">
-                    <Image className="logo" src={F1GPTlogo} width={140} alt="F1GPT Logo" />
+                    <Link href="/">
+                        <Image className="logo" src={F1GPTlogo} width={140} alt="F1GPT Logo" />
+                    </Link>
                 </div>
 
                 <h1 className="auth-title">Welcome back</h1>
