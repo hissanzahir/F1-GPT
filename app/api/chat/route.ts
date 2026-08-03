@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import { streamText, smoothStream } from "ai";
+import { streamText } from "ai";
 import { openai as aiOpenai } from "@ai-sdk/openai";
 import { DataAPIClient } from "@datastax/astra-db-ts"
 
@@ -11,10 +11,10 @@ const {
     OPENAI_API_KEY
 } =process.env
 
-const SIMILARITY_THRESHOLD = 0.7
 const TRIVIAL_PROMPT_LENGTH = 5
 const HISTORY_LIMIT = 6
 const CACHE_SIZE = 50
+const MAX_DOC_CHARS = 1500
 
 const openai = new OpenAI({
     apiKey: OPENAI_API_KEY
@@ -53,6 +53,8 @@ export async function POST(req:Request) {
         const {messages} = await req.json()
         const latestMessages = messages[messages.length-1]?.content
 
+        const t0 = Date.now()
+
         let docContext = ""
 
         const normalized = normalizeKey(latestMessages)
@@ -62,27 +64,35 @@ export async function POST(req:Request) {
             docContext = getCachedContext(normalized) ?? ""
 
             if (!docContext) {
+                const tEmbed = Date.now()
                 const embedding = await openai.embeddings.create({
                     model: "text-embedding-3-small",
                     input: latestMessages,
                     encoding_format: "float"
                 })
+                const embedMs = Date.now() - tEmbed
 
+                let dbMs = 0
                 try {
+                    const tDb = Date.now()
                     const collection = await db.collection(ASTRA_DB_COLLECTION)
-                    const cursor = collection.find (null, {
+                    const cursor = collection.find ({}, {
                         sort:{
                             $vector : embedding.data[0].embedding,
                         },
-                        limit: 6,
-                        includeSimilarity: true
+                        limit: 4,
+                        projection: {
+                            text: 1,
+                            title: 1,
+                            sourceUrl: 1
+                        }
                     })
 
                     const documents = await cursor.toArray()
+                    dbMs = Date.now() - tDb
 
                     const docsMap = documents
-                        .filter((doc) => (doc.$similarity ?? 0) >= SIMILARITY_THRESHOLD)
-                        .map((doc) => `[${doc.title ?? doc.sourceUrl ?? "Source"}]: ${doc.text}`)
+                        .map((doc) => `[${doc.title ?? doc.sourceUrl ?? "Source"}]: ${String(doc.text).slice(0, MAX_DOC_CHARS)}`)
 
                     docContext = docsMap.join("\n\n")
                     setCachedContext(normalized, docContext)
@@ -91,6 +101,11 @@ export async function POST(req:Request) {
                 console.log("Error Querying db...")
                 docContext=""
                 }
+
+                const ragMs = Date.now() - t0
+                console.log(`[chat] cache miss | embed=${embedMs}ms db=${dbMs}ms ragTotal=${ragMs}ms`)
+            } else {
+                console.log(`[chat] cache hit | context=${docContext.length} chars`)
             }
         }
 
@@ -116,11 +131,18 @@ export async function POST(req:Request) {
             `
         }
 
+       const tStream = Date.now()
+       let firstTokenLogged = false
        const result = streamText({
     model: aiOpenai("gpt-5.6-luna"),
     temperature: 1,
     messages: [template, ...messages.slice(-HISTORY_LIMIT)],
-    experimental_transform: smoothStream({ chunking: "word" }),
+    onChunk: () => {
+        if (!firstTokenLogged) {
+            firstTokenLogged = true
+            console.log(`[chat] first token in ${Date.now() - tStream}ms`)
+        }
+    },
 });
 
     return result.toDataStreamResponse();

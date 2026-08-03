@@ -70,8 +70,16 @@ first token.
 Inputs < 5 chars (greetings: "hi", "hello") bypass embedding + DB — they
 returned empty context today anyway, so RAG results are unchanged.
 
-### Unchanged
-- Model `gpt-5.6-luna`, temperature 1, similarity threshold 0.7, limit 6.
+### Unchanged / Final tuning values
+- Model `gpt-5.6-luna`, temperature 1.
+- Vector search: `limit` 4, no similarity post-filter (top-4 taken
+  unconditionally), docs truncated to 1500 chars, projection of
+  `text`/`title`/`sourceUrl` only.
+
+### Saved suggestion answers
+The four onboarding suggestion buttons return pre-written answers
+immediately (no API call) via `app/data/suggestedAnswers.ts`, so the first
+impression feels instant. All other questions use the normal RAG stream.
 
 ## New Latency Path (optimized)
 ```

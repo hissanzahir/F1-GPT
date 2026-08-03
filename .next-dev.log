@@ -7,41 +7,11 @@
   - Environments: .env
 
  ✓ Starting...
- ✓ Ready in 2.1s
+ ✓ Ready in 9.5s
  ○ Compiling /middleware ...
- ✓ Compiled /middleware in 833ms (174 modules)
- ○ Compiling /login ...
- ✓ Compiled /login in 4.4s (863 modules)
- GET /login 200 in 4727ms
+ ✓ Compiled /middleware in 3.8s (174 modules)
+ ○ Compiling / ...
+ ✓ Compiled / in 16.4s (846 modules)
 <w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (107kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
 <w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (258kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
- ○ Compiling / ...
- ✓ Compiled / in 1141ms (999 modules)
- GET / 200 in 1386ms
- ○ Compiling /auth/callback ...
- ✓ Compiled /auth/callback in 516ms (694 modules)
- GET /auth/callback 307 in 699ms
- GET /login?error=auth 200 in 102ms
- GET /login 200 in 118ms
- GET /login 200 in 44ms
- POST /login 200 in 983ms
- GET /auth/callback 307 in 20ms
- GET /login?error=auth 200 in 58ms
- GET / 200 in 131ms
- GET /login 200 in 100ms
- GET / 200 in 95ms
- ○ Compiling /signup ...
- ✓ Compiled /signup in 1624ms (1005 modules)
- ✓ Compiled /auth/callback in 244ms (698 modules)
- GET /auth/callback?code=b76b9035-2c5e-43fd-b66f-dadf61b097eb 307 in 1695ms
- GET / 200 in 220ms
- ○ Compiling /api/chat ...
- ✓ Compiled /api/chat in 1950ms (941 modules)
-(node:9276) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
-(Use `node --trace-deprecation ...` to show where the warning was created)
-Error Querying db...
- POST /api/chat 200 in 9121ms
- GET /auth/callback?code=dfaa06f1-bd41-484b-92b3-a8045194bcf7 307 in 563ms
- GET / 200 in 255ms
- POST /signup 200 in 1131ms
- GET / 200 in 214ms
+ GET / 200 in 103ms

@@ -7,6 +7,7 @@ import Bubble from "./components/Bubble";
 import LoadingBubble from "./components/LoadingBubble";
 import PromptSuggestionRow from "./components/PromptSuggestionsRow";
 import SidebarAuth from "./components/SidebarAuth";
+import { getSuggestedAnswer } from "./data/suggestedAnswers";
 
 const Home = () => {
     const { append, isLoading, messages, input, handleInputChange, handleSubmit, setMessages } = useChat();
@@ -14,6 +15,16 @@ const Home = () => {
     const noMessages = !messages || messages.length === 0;
 
     const handlePrompt = (promptText: string) => {
+        const saved = getSuggestedAnswer(promptText);
+        if (saved) {
+            setMessages((prev) => [
+                ...prev,
+                { id: crypto.randomUUID(), content: promptText, role: "user" },
+                { id: crypto.randomUUID(), content: saved, role: "assistant" },
+            ]);
+            return;
+        }
+
         const msg: Message = {
             id: crypto.randomUUID(),
             content: promptText,
