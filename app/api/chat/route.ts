@@ -1,8 +1,7 @@
 import OpenAI from "openai";
-import { streamText } from "ai";
+import { streamText, smoothStream } from "ai";
 import { openai as aiOpenai } from "@ai-sdk/openai";
 import { DataAPIClient } from "@datastax/astra-db-ts"
-import { cursorTo } from "readline";
 
 const {
     ASTRA_DB_NAMESPACE,
@@ -13,6 +12,9 @@ const {
 } =process.env
 
 const SIMILARITY_THRESHOLD = 0.7
+const TRIVIAL_PROMPT_LENGTH = 5
+const HISTORY_LIMIT = 6
+const CACHE_SIZE = 50
 
 const openai = new OpenAI({
     apiKey: OPENAI_API_KEY
@@ -20,6 +22,30 @@ const openai = new OpenAI({
 
 const client = new DataAPIClient(ASTRA_DB_APPLICATION_TOKEN)
 const db = client.db(ASTRA_DB_API_ENDPOINT, {namespace: ASTRA_DB_NAMESPACE})
+
+const contextCache = new Map<string, string>()
+
+function getCachedContext(key: string): string | null {
+    if (contextCache.has(key)) {
+        const value = contextCache.get(key)!
+        contextCache.delete(key)
+        contextCache.set(key, value)
+        return value
+    }
+    return null
+}
+
+function setCachedContext(key: string, value: string) {
+    contextCache.delete(key)
+    contextCache.set(key, value)
+    if (contextCache.size > CACHE_SIZE) {
+        contextCache.delete(contextCache.keys().next().value)
+    }
+}
+
+function normalizeKey(message: string): string {
+    return message.trim().replace(/\s+/g, " ").toLowerCase()
+}
 
 export async function POST(req:Request) {
     try{
@@ -29,34 +55,43 @@ export async function POST(req:Request) {
 
         let docContext = ""
 
-       const embedding = await openai.embeddings.create({
-            model: "text-embedding-3-small",
-            input: latestMessages,
-            encoding_format: "float"
-        })
+        const normalized = normalizeKey(latestMessages)
+        const isTrivial = normalized.length < TRIVIAL_PROMPT_LENGTH
 
-        try {
-            const collection = await db.collection(ASTRA_DB_COLLECTION)
-            const cursor =collection.find (null, {
-                sort:{
-                    $vector : embedding.data[0].embedding,
-                },
-                limit: 6,
-                includeSimilarity: true
-            })
+        if (!isTrivial) {
+            docContext = getCachedContext(normalized) ?? ""
 
-            const documents = await cursor.toArray()
+            if (!docContext) {
+                const embedding = await openai.embeddings.create({
+                    model: "text-embedding-3-small",
+                    input: latestMessages,
+                    encoding_format: "float"
+                })
 
-            const docsMap = documents
-                .filter((doc) => (doc.$similarity ?? 0) >= SIMILARITY_THRESHOLD)
-                .map((doc) => `[${doc.title ?? doc.sourceUrl ?? "Source"}]: ${doc.text}`)
+                try {
+                    const collection = await db.collection(ASTRA_DB_COLLECTION)
+                    const cursor = collection.find (null, {
+                        sort:{
+                            $vector : embedding.data[0].embedding,
+                        },
+                        limit: 6,
+                        includeSimilarity: true
+                    })
 
-            docContext = docsMap.join("\n\n")
+                    const documents = await cursor.toArray()
 
+                    const docsMap = documents
+                        .filter((doc) => (doc.$similarity ?? 0) >= SIMILARITY_THRESHOLD)
+                        .map((doc) => `[${doc.title ?? doc.sourceUrl ?? "Source"}]: ${doc.text}`)
 
-        } catch (err) {
-        console.log("Error Querying db...")
-        docContext=""
+                    docContext = docsMap.join("\n\n")
+                    setCachedContext(normalized, docContext)
+
+                } catch (err) {
+                console.log("Error Querying db...")
+                docContext=""
+                }
+            }
         }
 
         const template ={
@@ -84,7 +119,8 @@ export async function POST(req:Request) {
        const result = streamText({
     model: aiOpenai("gpt-5.6-luna"),
     temperature: 1,
-    messages: [template, ...messages],
+    messages: [template, ...messages.slice(-HISTORY_LIMIT)],
+    experimental_transform: smoothStream({ chunking: "word" }),
 });
 
     return result.toDataStreamResponse();
