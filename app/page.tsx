@@ -1,12 +1,12 @@
 "use client";
 import Image from "next/image";
-import Link from "next/link";
 import F1GPTlogo from "./assets/F1GPTLogo.png";
 import { useChat } from "ai/react";
 import { Message } from "ai";
 import Bubble from "./components/Bubble";
 import LoadingBubble from "./components/LoadingBubble";
 import PromptSuggestionRow from "./components/PromptSuggestionsRow";
+import SidebarAuth from "./components/SidebarAuth";
 
 const Home = () => {
     const { append, isLoading, messages, input, handleInputChange, handleSubmit, setMessages } = useChat();
@@ -45,8 +45,7 @@ const Home = () => {
                 </div>
 
                 <div className="sidebar-footer">
-                    <Link href="/login" className="sidebar-auth">Login</Link>
-                    <Link href="/signup" className="sidebar-auth primary">Sign up</Link>
+                    <SidebarAuth />
                 </div>
             </aside>
 
