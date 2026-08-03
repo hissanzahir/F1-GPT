@@ -63,7 +63,6 @@ const Home = () => {
                 <div className="sidebar-section">
                     <p className="section-label">Quick access</p>
                     <button className="sidebar-link" type="button">Recent chats</button>
-                    <button className="sidebar-link" type="button">Saved insights</button>
                 </div>
 
                 <div className="sidebar-footer">

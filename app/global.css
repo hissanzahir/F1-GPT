@@ -99,7 +99,15 @@ input {
     color: #374151;
     padding: 10px 12px;
     border-radius: 10px;
+    text-decoration: none;
+}
+
+.sidebar-link {
     text-align: left;
+}
+
+.sidebar-auth {
+    text-align: center;
 }
 
 .sidebar-link:hover,
