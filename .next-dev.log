@@ -1,0 +1,17 @@
+
+> nextjs-f1gpt@0.1.0 dev
+> next dev
+
+  ▲ Next.js 14.2.23
+  - Local:        http://localhost:3000
+  - Environments: .env
+
+ ✓ Starting...
+ ✓ Ready in 2.1s
+ ○ Compiling /login ...
+ ✓ Compiled /login in 862ms (567 modules)
+ GET /login 200 in 1044ms
+ ○ Compiling / ...
+ ✓ Compiled / in 1237ms (712 modules)
+ GET / 200 in 144ms
+ GET / 200 in 86ms
