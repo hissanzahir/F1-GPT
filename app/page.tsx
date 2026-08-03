@@ -1,4 +1,5 @@
 "use client";
+import { useState } from "react";
 import Image from "next/image";
 import F1GPTlogo from "./assets/F1GPTLogo.png";
 import { useChat } from "ai/react";
@@ -9,19 +10,29 @@ import PromptSuggestionRow from "./components/PromptSuggestionsRow";
 import SidebarAuth from "./components/SidebarAuth";
 import { getSuggestedAnswer } from "./data/suggestedAnswers";
 
+const SUGGESTION_DELAY_MS = 500;
+
 const Home = () => {
     const { append, isLoading, messages, input, handleInputChange, handleSubmit, setMessages } = useChat();
+    const [pendingSuggestion, setPendingSuggestion] = useState(false);
 
     const noMessages = !messages || messages.length === 0;
 
     const handlePrompt = (promptText: string) => {
         const saved = getSuggestedAnswer(promptText);
         if (saved) {
+            setPendingSuggestion(true);
             setMessages((prev) => [
                 ...prev,
                 { id: crypto.randomUUID(), content: promptText, role: "user" },
-                { id: crypto.randomUUID(), content: saved, role: "assistant" },
             ]);
+            setTimeout(() => {
+                setMessages((prev) => [
+                    ...prev,
+                    { id: crypto.randomUUID(), content: saved, role: "assistant" },
+                ]);
+                setPendingSuggestion(false);
+            }, SUGGESTION_DELAY_MS);
             return;
         }
 
@@ -77,7 +88,7 @@ const Home = () => {
                             {messages.map((message, index) => (
                                 <Bubble key={`message-${index}`} message={message} />
                             ))}
-                            {isLoading && <LoadingBubble />}
+                            {(isLoading || pendingSuggestion) && <LoadingBubble />}
                         </>
                     )}
                 </section>
