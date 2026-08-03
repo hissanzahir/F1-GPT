@@ -1,5 +1,6 @@
 "use client";
 import Image from "next/image";
+import Link from "next/link";
 import F1GPTlogo from "./assets/F1GPTLogo.png";
 import { useChat } from "ai/react";
 import { Message } from "ai";
@@ -44,8 +45,8 @@ const Home = () => {
                 </div>
 
                 <div className="sidebar-footer">
-                    <button className="sidebar-auth" type="button">Login</button>
-                    <button className="sidebar-auth primary" type="button">Sign up</button>
+                    <Link href="/login" className="sidebar-auth">Login</Link>
+                    <Link href="/signup" className="sidebar-auth primary">Sign up</Link>
                 </div>
             </aside>
 
