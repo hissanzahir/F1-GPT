@@ -121,6 +121,7 @@ export async function POST(req:Request) {
             what the context does or doesn't include.
             Format responses using markdown where applicable and don't return 
             images.
+            dont include ** in your response.
             -----------------
             START CONTEXT
             ${docContext}
