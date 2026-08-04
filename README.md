@@ -6,11 +6,27 @@ Built with **Next.js 14**, **OpenAI**, **LangChain**, **Vercel AI SDK**, and **D
 
 ---
 
+## Screenshots
+
+**Landing page** (`/`):
+
+![Landing page](app/assets/screenshots/0%20landingpage0.png)
+
+**Chat interface** (`/chat`):
+
+![Chat interface](app/assets/screenshots/1%20chat%20ui%20.png)
+
+**Login page** (`/login`):
+
+![Login page](app/assets/screenshots/2%20LOGIN.png)
+
+---
 ## Table of contents
 
 - [Architecture overview](#architecture-overview)
 - [End-to-end data flow](#end-to-end-data-flow)
 - [Tech stack](#tech-stack)
+- [Screenshots](#screenshots)
 - [Project structure](#project-structure)
 - [Ingestion pipeline (seed script)](#ingestion-pipeline-seed-script)
 - [Query pipeline (chat API)](#query-pipeline-chat-api)
@@ -50,7 +66,7 @@ F1-GPT is a two-phase system:
 │                         QUERY (runtime)                                 │
 │                                                                         │
 │  User input  →  Next.js UI  →  POST /api/chat  →  Embed query           │
-│  (page.tsx)      useChat()       (route.ts)         (OpenAI)            │
+│  (chat/page.tsx)  useChat()   (route.ts)         (OpenAI)            │
 │                                                                         │
 │                         ↓                        ↓                      │
 │                  Vector search (Astra)    Build system prompt           │
@@ -94,7 +110,7 @@ Astra DB collection ready for similarity search
 ### 2. Answering a user question
 
 ```
-Browser (page.tsx)
+Browser (chat/page.tsx)
     │  useChat() from Vercel AI SDK
     │  POST /api/chat with { messages: [...] }
     ▼
@@ -135,6 +151,7 @@ Streaming response → Bubble components render assistant reply
 - `langchain`, `puppeteer` — document loading and browser automation for seeding
 - `dotenv` — load `.env` in the seed script (Next.js loads env vars automatically for the app)
 
+
 ---
 
 ## Project structure
@@ -143,19 +160,31 @@ Streaming response → Bubble components render assistant reply
 F1-GPT/
 ├── app/
 │   ├── layout.tsx                 # Root HTML shell, metadata, global CSS import
-│   ├── page.tsx                   # Main chat page (client component)
-│   ├── global.css                 # Layout, bubbles, form, loader styles
-│   ├── assets/                    # Logo and background images (referenced by UI)
+│   ├── page.tsx                   # Landing page (client component)
+│   ├── global.css                 # Landing, chat, auth, and bubble styles
+│   ├── assets/                    # Logo, background images, and screenshots
+│   ├── chat/
+│   │   └── page.tsx               # Chat interface (client component)
+│   ├── login/
+│   │   └── page.tsx               # Login page
+│   ├── signup/
+│   │   └── page.tsx               # Sign up page
 │   ├── components/
 │   │   ├── Bubble.tsx             # Single chat message (user or assistant)
 │   │   ├── LoadingBubble.tsx      # Animated loader while assistant responds
 │   │   ├── PromptSuggestionButton.tsx  # Clickable starter prompt chip
-│   │   └── PromptSuggestionsRow.tsx    # Row of example questions on empty chat
+│   │   ├── PromptSuggestionsRow.tsx    # Row of example questions on empty chat
+│   │   └── SidebarAuth.tsx        # Login/signup links or user session in sidebar
+│   ├── auth/
+│   │   ├── actions.ts             # Server actions (sign in, sign up, sign out)
+│   │   └── callback/
+│   │       └── route.ts           # OAuth callback redirect handler
 │   └── api/
 │       └── chat/
 │           └── route.ts           # RAG + streaming LLM endpoint
 ├── script/
 │   └── loadDb.tsx                 # Wikipedia scrape → embed → Astra DB loader
+├── middleware.ts                  # Session refresh + auth redirects
 ├── .env.example                   # Template for required environment variables
 ├── .seed-checkpoint.json          # Resumable seed progress (local, gitignored pattern)
 ├── next.config.js                 # Next.js config (reactStrictMode)
@@ -318,9 +347,21 @@ The API route and seed script use the same env vars and client initialization pa
 
 Server component that sets page metadata (`title: "F1GPT"`) and wraps all pages in a minimal `<html><body>` with global CSS.
 
-### Main page (`app/page.tsx`)
+### Landing page (`app/page.tsx`)
 
-Client component (`"use client"`) — the entire chat experience.
+Client component (`"use client"`) served at `/`. It is the marketing/entry page:
+
+| Concern | Implementation |
+|---------|----------------|
+| Header | White bar with the F1GPT logo (links home) and a "Start Chatting" CTA to `/chat` |
+| Hero | Tagline, "Try F1GPT" / "Sign Up Free" CTAs, and a mock chat card preview |
+| Features | Grid of four cards (Race Strategy, Driver Stats, Predictions, Team News) |
+| CTA | "Start Chatting" section funneling to `/chat` |
+| Footer | White bar with logo and links to Login, Sign Up, and Chat |
+
+### Chat page (`app/chat/page.tsx`)
+
+Client component (`"use client"`) served at `/chat` — the entire chat experience.
 
 | Concern | Implementation |
 |---------|----------------|
@@ -329,6 +370,11 @@ Client component (`"use client"`) — the entire chat experience.
 | Empty state | Welcome copy + `PromptSuggestionsRow` |
 | Active chat | Maps `messages` to `Bubble`; shows `LoadingBubble` while streaming |
 | Starter prompts | `handlePrompt` builds a user `Message` and calls `append(msg)` |
+| Sidebar | Brand, "New chat" button, and `SidebarAuth` (login/signup or user session) |
+
+### Auth pages (`app/login/page.tsx`, `app/signup/page.tsx`)
+
+Client components for email/password and Google OAuth sign in/up. Server actions in `app/auth/actions.ts` (`signInWithEmail`, `signUpWithEmail`, `signOut`) call Supabase and redirect to `/chat`. The OAuth callback at `app/auth/callback/route.ts` exchanges the code for a session and redirects to `/chat`.
 
 ### Components
 
@@ -340,13 +386,15 @@ Client component (`"use client"`) — the entire chat experience.
 
 **`PromptSuggestionButton.tsx`** — Styled button for each suggestion.
 
+**`SidebarAuth.tsx`** — Shows Login/Sign Up links when logged out, or the user email and a Sign Out button when logged in.
+
 ### Styling (`app/global.css`)
 
-- Full-viewport centered layout with background image
-- Main panel: gradient card (~80vw × 80vh)
-- Chat section scrolls when populated (`section.populated`)
-- User bubbles align right (light blue); assistant bubbles align left (lavender)
-- Form pinned at bottom: text input + purple submit button
+- Landing page: dark theme (`#15151E`) with F1-red (`#E10600`) accents; white header and footer bars
+- Chat layout: sidebar + chat panel, full-viewport height
+- User bubbles align right (light blue); assistant bubbles align left (white)
+- Composer pinned at bottom: text input + blue send button
+- Auth pages: centered card on a light gradient background
 
 ---
 
@@ -421,7 +469,7 @@ This may take a while (36 pages × many chunks × OpenAI embedding calls). Re-ru
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Open [http://localhost:3000](http://localhost:3000) to see the landing page. Head to [http://localhost:3000/chat](http://localhost:3000/chat) for the chat interface.
 
 ---
 
