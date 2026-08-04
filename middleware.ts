@@ -31,7 +31,7 @@ export async function updateSession(request: NextRequest) {
         user &&
         (request.nextUrl.pathname === "/login" || request.nextUrl.pathname === "/signup")
     ) {
-        return NextResponse.redirect(new URL("/", request.url));
+        return NextResponse.redirect(new URL("/chat", request.url));
     }
 
     return response;
