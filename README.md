@@ -16,7 +16,6 @@ Built with **Next.js 14**, **OpenAI**, **LangChain**, **Vercel AI SDK**, and **D
 
 ![Chat interface](app/assets/screenshots/1%20chat%20ui%20.png)
 
-**Login page** (`/login`):
 
 ![Login page](app/assets/screenshots/2%20LOGIN.png)
 
